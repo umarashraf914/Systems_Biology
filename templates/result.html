@@ -1314,6 +1314,7 @@
             <div class="card-header">
                 <i class="fas fa-robot"></i>
                 <h2>AI Comparative Analysis</h2>
+                <span id="ai-scope-badge" class="badge" style="display: none; background: rgba(255,255,255,0.25); margin-right: 8px;"></span>
                 <span class="badge">Powered by Gemini 2.0</span>
             </div>
             <div class="card-body">
@@ -1366,6 +1367,7 @@
             <div class="card-header">
                 <i class="fas fa-stethoscope"></i>
                 <h2>Clinical Interview Questions</h2>
+                <span id="clinical-scope-badge" class="badge" style="display: none; background: rgba(255,255,255,0.25); margin-right: 8px;"></span>
                 <span class="badge">Diagnostic Support</span>
             </div>
             <div class="card-body">
@@ -1517,6 +1519,17 @@
             document.getElementById('ai-loading').style.display = 'none';
             document.getElementById('clinical-loading').style.display = 'none';
             
+            // Show scope badges (which prescription(s) the analysis covers)
+            if (aiResults.analysis_scope) {
+                const aiBadge = document.getElementById('ai-scope-badge');
+                aiBadge.textContent = aiResults.analysis_scope;
+                aiBadge.style.display = 'inline-block';
+                
+                const clinicalBadge = document.getElementById('clinical-scope-badge');
+                clinicalBadge.textContent = aiResults.analysis_scope;
+                clinicalBadge.style.display = 'inline-block';
+            }
+            
             if (aiResults.has_ai_analysis) {
                 document.getElementById('ai-results').style.display = 'block';
                 
@@ -1631,6 +1644,17 @@
                 // Hide loading states
                 document.getElementById('ai-loading').style.display = 'none';
                 document.getElementById('clinical-loading').style.display = 'none';
+                
+                // Show scope badges (which prescription(s) the analysis covers)
+                if (aiResults.analysis_scope) {
+                    const aiBadge = document.getElementById('ai-scope-badge');
+                    aiBadge.textContent = aiResults.analysis_scope;
+                    aiBadge.style.display = 'inline-block';
+                    
+                    const clinicalBadge = document.getElementById('clinical-scope-badge');
+                    clinicalBadge.textContent = aiResults.analysis_scope;
+                    clinicalBadge.style.display = 'inline-block';
+                }
                 
                 if (aiResults.has_ai_analysis) {
                     document.getElementById('ai-results').style.display = 'block';

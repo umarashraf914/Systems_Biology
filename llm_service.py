@@ -481,7 +481,8 @@ def generate_full_ai_analysis(disease_name: str, results: dict) -> dict:
         'detailed_analysis': None,
         'clinical_questions': None,
         'has_ai_analysis': False,
-        'error': None
+        'error': None,
+        'analysis_scope': None  # e.g. 'Prescription 1 & Prescription 2' or 'Prescription 2 only'
     }
     
     # Check if API key is configured
@@ -510,6 +511,8 @@ def generate_full_ai_analysis(disease_name: str, results: dict) -> dict:
         
         if len(prescription_data) > 1:
             # Multiple prescriptions have enrichment data → comparative analysis
+            rx_labels = sorted(prescription_data.keys())
+            ai_results['analysis_scope'] = ' & '.join(rx_labels)
             print(f"[LLM] Running comparative analysis for {len(prescription_data)} groups")
             analysis = generate_comparative_analysis(disease_name, prescription_data)
             if analysis:
@@ -530,6 +533,7 @@ def generate_full_ai_analysis(disease_name: str, results: dict) -> dict:
             # Only 1 prescription has enrichment data → single prescription analysis
             rx_key = list(prescription_data.keys())[0]
             rx_data = prescription_data[rx_key]
+            ai_results['analysis_scope'] = f"{rx_key} only"
             print(f"[LLM] Only {rx_key} has enrichment data ({len(rx_data)} entries) — running single prescription analysis")
             
             analysis = generate_single_prescription_analysis(disease_name, rx_data)
@@ -554,6 +558,7 @@ def generate_full_ai_analysis(disease_name: str, results: dict) -> dict:
         # Single prescription analysis
         rx_key = list(prescription_enrichments.keys())[0]
         rx_data = prescription_enrichments[rx_key].get('DisGeNET', [])
+        ai_results['analysis_scope'] = rx_key
         print(f"[LLM] Single prescription mode: {rx_key} with {len(rx_data)} enrichment entries")
         
         if rx_data:
