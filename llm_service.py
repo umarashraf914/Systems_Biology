@@ -513,6 +513,8 @@ def generate_full_ai_analysis(disease_name: str, results: dict) -> dict:
             # Multiple prescriptions have enrichment data → comparative analysis
             rx_labels = sorted(prescription_data.keys())
             ai_results['analysis_scope'] = ' & '.join(rx_labels)
+            # Map Group N → Prescription label for frontend column headers
+            ai_results['group_mapping'] = {f"Group {i}": label for i, label in enumerate(rx_labels, 1)}
             print(f"[LLM] Running comparative analysis for {len(prescription_data)} groups")
             analysis = generate_comparative_analysis(disease_name, prescription_data)
             if analysis:
@@ -534,6 +536,7 @@ def generate_full_ai_analysis(disease_name: str, results: dict) -> dict:
             rx_key = list(prescription_data.keys())[0]
             rx_data = prescription_data[rx_key]
             ai_results['analysis_scope'] = f"{rx_key} only"
+            ai_results['group_mapping'] = {"Finding": rx_key}
             print(f"[LLM] Only {rx_key} has enrichment data ({len(rx_data)} entries) — running single prescription analysis")
             
             analysis = generate_single_prescription_analysis(disease_name, rx_data)
@@ -559,6 +562,7 @@ def generate_full_ai_analysis(disease_name: str, results: dict) -> dict:
         rx_key = list(prescription_enrichments.keys())[0]
         rx_data = prescription_enrichments[rx_key].get('DisGeNET', [])
         ai_results['analysis_scope'] = rx_key
+        ai_results['group_mapping'] = {"Finding": rx_key}
         print(f"[LLM] Single prescription mode: {rx_key} with {len(rx_data)} enrichment entries")
         
         if rx_data:

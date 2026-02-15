@@ -1533,6 +1533,11 @@
             if (aiResults.has_ai_analysis) {
                 document.getElementById('ai-results').style.display = 'block';
                 
+                // Store group mapping for table column headers
+                if (aiResults.group_mapping) {
+                    currentGroupMapping = aiResults.group_mapping;
+                }
+                
                 // Render summary table
                 if (aiResults.summary_table && aiResults.summary_table.length > 0) {
                     renderSummaryTable(aiResults.summary_table);
@@ -1552,7 +1557,7 @@
                 // Render clinical questions as cards
                 if (aiResults.clinical_questions && Array.isArray(aiResults.clinical_questions)) {
                     document.getElementById('clinical-results').style.display = 'grid';
-                    renderClinicalCards(aiResults.clinical_questions);
+                    renderClinicalCards(aiResults.clinical_questions, aiResults.group_mapping);
                 } else {
                     showClinicalUnavailable();
                 }
@@ -1659,6 +1664,11 @@
                 if (aiResults.has_ai_analysis) {
                     document.getElementById('ai-results').style.display = 'block';
                     
+                    // Store group mapping for table column headers
+                    if (aiResults.group_mapping) {
+                        currentGroupMapping = aiResults.group_mapping;
+                    }
+                    
                     // Render summary table
                     if (aiResults.summary_table && aiResults.summary_table.length > 0) {
                         renderSummaryTable(aiResults.summary_table);
@@ -1678,7 +1688,7 @@
                     // Render clinical questions as cards
                     if (aiResults.clinical_questions && Array.isArray(aiResults.clinical_questions)) {
                         document.getElementById('clinical-results').style.display = 'grid';
-                        renderClinicalCards(aiResults.clinical_questions);
+                        renderClinicalCards(aiResults.clinical_questions, aiResults.group_mapping);
                     } else {
                         showClinicalUnavailable();
                     }
@@ -1694,6 +1704,9 @@
             }
         }
         
+        // Store group mapping globally so renderSummaryTable can use it
+        let currentGroupMapping = {};
+        
         function renderSummaryTable(tableData) {
             if (!tableData || tableData.length === 0) {
                 document.getElementById('ai-table-container').innerHTML = 
@@ -1706,7 +1719,13 @@
             
             let html = '<table class="ai-summary-table"><thead><tr>';
             columns.forEach(col => {
-                html += `<th>${col}</th>`;
+                // Show prescription label under Group name if mapping exists
+                const rxLabel = currentGroupMapping[col];
+                if (rxLabel && col !== 'Feature') {
+                    html += `<th>${col}<br><span style="font-size: 0.75rem; font-weight: 500; opacity: 0.85;">(${escapeHtml(rxLabel)})</span></th>`;
+                } else {
+                    html += `<th>${col}</th>`;
+                }
             });
             html += '</tr></thead><tbody>';
             
@@ -1723,11 +1742,14 @@
             document.getElementById('ai-table-container').innerHTML = html;
         }
         
-        function renderClinicalCards(clinicalData) {
+        function renderClinicalCards(clinicalData, groupMapping) {
             if (!clinicalData || !Array.isArray(clinicalData) || clinicalData.length === 0) {
                 showClinicalUnavailable();
                 return;
             }
+            
+            // Build reverse mapping: find prescription label for each group index
+            const rxLabels = groupMapping ? Object.values(groupMapping) : [];
             
             let html = '';
             
@@ -1738,10 +1760,21 @@
                 const rationale = group.rationale_hidden || '';
                 const cardId = `clinical-card-${index}`;
                 
+                // Determine which prescription this card belongs to
+                let rxBadge = '';
+                if (groupMapping) {
+                    const groupKey = `Group ${index + 1}`;
+                    const rxName = groupMapping[groupKey] || (rxLabels[index] || '');
+                    if (rxName) {
+                        rxBadge = `<span class="rx-badge" style="margin-right: 8px;">${escapeHtml(rxName)}</span>`;
+                    }
+                }
+                
                 html += `
                 <div class="clinical-group-card">
                     <div class="clinical-group-header">
                         <div class="clinical-group-label">
+                            ${rxBadge}
                             <i class="fas fa-user-md"></i>
                             ${escapeHtml(groupLabel)}
                         </div>
