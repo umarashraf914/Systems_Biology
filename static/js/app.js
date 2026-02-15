@@ -205,6 +205,11 @@ function setupHerbAutocomplete(input) {
     });
     
     input.addEventListener('keydown', function(e) {
+        // ALWAYS prevent Enter from submitting the form while in herb input
+        if (e.key === 'Enter') {
+            e.preventDefault();
+        }
+        
         // Handle backspace to remove last tag
         if (e.key === 'Backspace' && this.value === '') {
             const herbs = state.prescriptions[prescriptionIndex];
