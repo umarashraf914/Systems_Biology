@@ -2,8 +2,11 @@
 Flask routes for the Disease Portal application.
 """
 import json
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from functools import wraps
+
+# Korea Standard Time (UTC+9)
+KST = timezone(timedelta(hours=9))
 from flask import Blueprint, render_template, request, redirect, url_for, jsonify, session, flash
 from sqlalchemy import func, desc, text
 from sqlalchemy.orm import sessionmaker
@@ -471,7 +474,7 @@ def analyze():
                 prescriptions=json.dumps(herb_lists),
                 results_json=json.dumps(results, default=str),
                 common_genes_count=common_genes_count,
-                created_at=datetime.utcnow()
+                created_at=datetime.now(KST)
             )
             session.add(new_result)
             session.commit()
