@@ -1249,43 +1249,64 @@
             </div>
             <div class="card-body">
                 <div class="enrichment-grid">
-                    {% for data in results.enrichment_data %}
-                    <div class="enrichment-item">
-                        <div class="enrichment-item-header">
-                            <span class="rx-badge">Rx {{ loop.index }}</span>
-                            <span class="result-count">{{ data.enrichment_data | length }} results</span>
+                    {% set enrichment_idx = namespace(value=0) %}
+                    {% for prescription in results.prescriptions %}
+                        {% if prescription.unique_gene_count | default(0) > 0 %}
+                        <div class="enrichment-item">
+                            <div class="enrichment-item-header">
+                                <span class="rx-badge">Rx {{ prescription.index }}</span>
+                                {% if enrichment_idx.value < results.enrichment_data | length %}
+                                <span class="result-count">{{ results.enrichment_data[enrichment_idx.value].enrichment_data | length }} results</span>
+                                {% endif %}
+                            </div>
+                            
+                            {% if enrichment_idx.value < results.enrichment_data | length and results.enrichment_data[enrichment_idx.value].enrichment_data %}
+                            <table class="enrichment-table">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Term</th>
+                                        <th>P-value</th>
+                                        <th>Score</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in results.enrichment_data[enrichment_idx.value].enrichment_data %}
+                                    <tr>
+                                        <td>{{ loop.index }}</td>
+                                        <td>
+                                            <span class="term-name" title="{{ item['Term name'] }}">{{ item['Term name'] }}</span>
+                                        </td>
+                                        <td><span class="pvalue">{{ "%.2e" | format(item['Adjusted p-value']) }}</span></td>
+                                        <td><span class="score">{{ "%.1f" | format(item['Combined score']) }}</span></td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                            {% else %}
+                            <div class="no-results">
+                                <i class="fas fa-search"></i>
+                                <p>No significant enrichment results</p>
+                            </div>
+                            {% endif %}
+                            {% set enrichment_idx.value = enrichment_idx.value + 1 %}
                         </div>
-                        
-                        {% if data.enrichment_data %}
-                        <table class="enrichment-table">
-                            <thead>
-                                <tr>
-                                    <th>#</th>
-                                    <th>Term</th>
-                                    <th>P-value</th>
-                                    <th>Score</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for item in data.enrichment_data %}
-                                <tr>
-                                    <td>{{ loop.index }}</td>
-                                    <td>
-                                        <span class="term-name" title="{{ item['Term name'] }}">{{ item['Term name'] }}</span>
-                                    </td>
-                                    <td><span class="pvalue">{{ "%.2e" | format(item['Adjusted p-value']) }}</span></td>
-                                    <td><span class="score">{{ "%.1f" | format(item['Combined score']) }}</span></td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
                         {% else %}
-                        <div class="no-results">
-                            <i class="fas fa-search"></i>
-                            <p>No significant enrichment results</p>
+                        <div class="enrichment-item">
+                            <div class="enrichment-item-header">
+                                <span class="rx-badge">Rx {{ prescription.index }}</span>
+                            </div>
+                            <div class="no-unique-genes-notice" style="padding: 32px 24px; text-align: center; background: #f8fafc; border-radius: 12px; margin-top: 12px;">
+                                <i class="fas fa-info-circle" style="font-size: 2rem; color: #94a3b8; margin-bottom: 12px; display: block;"></i>
+                                <p style="color: #64748b; font-weight: 600; margin-bottom: 8px;">No Unique Genes</p>
+                                <p style="color: #94a3b8; font-size: 0.85rem; line-height: 1.5;">
+                                    Prescription {{ prescription.index }} has <strong>{{ prescription.common_gene_count | default(0) }} common genes</strong> with the disease, 
+                                    but all of them overlap with another prescription. 
+                                    Enrichment analysis is only performed on unique genes.
+                                </p>
+                            </div>
                         </div>
                         {% endif %}
-                    </div>
                     {% endfor %}
                 </div>
             </div>
