@@ -294,7 +294,14 @@ def analyze_prescriptions(disease_name, herb_lists):
             non_empty_genes = [unique_genes[i] for i in non_empty_indices]
             
             upload_data = upload_gene_lists_to_enrichr_parallel(non_empty_genes)
-            results['enrichment_data'] = perform_enrichment_analysis_parallel(upload_data)
+            enrichment_results = perform_enrichment_analysis_parallel(upload_data)
+            
+            # Tag each enrichment result with its original prescription index (1-based)
+            for j, enrich_item in enumerate(enrichment_results):
+                if j < len(non_empty_indices):
+                    enrich_item['prescription_index'] = non_empty_indices[j] + 1  # 1-based
+            
+            results['enrichment_data'] = enrichment_results
         except Exception as e:
             results['errors'].append(f"Enrichment analysis error: {str(e)}")
     

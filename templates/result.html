@@ -1586,7 +1586,9 @@
                 
                 if (resultsData.enrichment_data && resultsData.enrichment_data.length > 0) {
                     resultsData.enrichment_data.forEach((rxData, index) => {
-                        const rxKey = `Prescription ${index + 1}`;
+                        // Use the stored prescription_index if available, otherwise fall back to array index
+                        const rxNum = rxData.prescription_index || (index + 1);
+                        const rxKey = `Prescription ${rxNum}`;
                         const rxEnrichment = [];
                         
                         console.log(`[AI Debug] Processing ${rxKey}:`, rxData);
