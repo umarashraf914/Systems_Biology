@@ -690,7 +690,11 @@ def ai_analysis():
 @main_bp.route('/api/ai-analysis/status')
 def ai_analysis_status():
     """Check if AI analysis is available (API key configured)."""
+    import os
+    from dotenv import load_dotenv
+    load_dotenv(override=True)
+    api_key = os.environ.get('GEMINI_API_KEY') or Config.GEMINI_API_KEY
     return jsonify({
-        'available': bool(Config.GEMINI_API_KEY),
-        'message': 'AI analysis is available' if Config.GEMINI_API_KEY else 'GEMINI_API_KEY not configured'
+        'available': bool(api_key),
+        'message': 'AI analysis is available' if api_key else 'GEMINI_API_KEY not configured'
     })

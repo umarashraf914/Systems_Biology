@@ -13,12 +13,19 @@ def get_gemini_response(prompt: str, json_mode: bool = True) -> str:
     """
     Send a prompt to Google Gemini API and get a response.
     Uses JSON response mode by default for reliable structured output.
+    Reads API key from os.environ each time to pick up .env changes.
     """
-    api_key = Config.GEMINI_API_KEY
+    import os
+    from dotenv import load_dotenv
+    load_dotenv(override=True)  # Re-read .env each time to pick up key changes
+    
+    api_key = os.environ.get('GEMINI_API_KEY') or Config.GEMINI_API_KEY
     
     if not api_key:
         print("[LLM] Error: No Gemini API key configured")
         return None
+    
+    print(f"[LLM] Using API key: {api_key[:8]}...{api_key[-4:]} (len={len(api_key)})")
     
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}"
     
@@ -224,9 +231,9 @@ Do not include any text outside the JSON object."""
         
         print(f"[LLM] Attempt {attempt} failed to produce valid JSON, retrying...")
     
-    # All retries exhausted — return a safe fallback
-    print("[LLM] All comparative analysis attempts failed, using fallback")
-    return _build_comparative_fallback(disease_name, prescription_data)
+    # All retries exhausted — return None to signal failure (caller handles fallback)
+    print("[LLM] All comparative analysis attempts failed")
+    return None
 
 
 def _build_comparative_fallback(disease_name: str, prescription_data: dict) -> dict:
@@ -309,9 +316,9 @@ Do not include any text outside the JSON array."""
         
         print(f"[LLM] Attempt {attempt} failed to produce valid JSON array, retrying...")
     
-    # All retries exhausted — return safe fallback
-    print("[LLM] All clinical question attempts failed, using fallback")
-    return _build_clinical_fallback(disease_name, prescription_data)
+    # All retries exhausted — return None to signal failure
+    print("[LLM] All clinical question attempts failed")
+    return None
 
 
 def _build_clinical_fallback(disease_name: str, prescription_data: dict) -> list:
@@ -401,13 +408,9 @@ Do not include any text outside the JSON object."""
         
         print(f"[LLM] Attempt {attempt} failed, retrying...")
     
-    # Fallback
-    print("[LLM] All single analysis attempts failed, using fallback")
-    terms = [r.get('term', '?') for r in (enrichment_data or [])[:5]]
-    return {
-        'summary_table': [{"Feature": "Status", "Finding": "AI analysis unavailable"}],
-        'detailed_analysis': f"## Analysis for {disease_name}\n\nTop associations: {', '.join(terms)}.\n\n*Automated AI analysis could not be completed. Please review the enrichment data above.*"
-    }
+    # All retries exhausted — return None to signal failure
+    print("[LLM] All single analysis attempts failed")
+    return None
 
 
 def generate_single_clinical_questions(disease_name: str, enrichment_data: list) -> list:
@@ -459,20 +462,9 @@ Do not include any text outside the JSON array."""
         
         print(f"[LLM] Attempt {attempt} failed, retrying...")
     
-    # Fallback
-    print("[LLM] All single clinical question attempts failed, using fallback")
-    terms = [r.get('term', '?') for r in (enrichment_data or [])[:3]]
-    return [{
-        "group_label": "Prescription Analysis",
-        "suspected_driver": f"Associated with: {', '.join(terms)}",
-        "clinical_questions": [
-            f"Do you have a history of conditions related to {disease_name}?",
-            "Are you currently taking any medications?",
-            "Do you have a family history of this condition?",
-            "Have you noticed any recent changes in symptoms?"
-        ],
-        "rationale_hidden": f"**Note:** Automated AI analysis could not be completed. These are general screening questions for {disease_name}."
-    }]
+    # All retries exhausted — return None to signal failure
+    print("[LLM] All single clinical question attempts failed")
+    return None
 
 
 def generate_full_ai_analysis(disease_name: str, results: dict) -> dict:

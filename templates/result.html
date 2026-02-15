@@ -1480,9 +1480,18 @@
         async function checkAndRunAiAnalysis() {
             // Check if we have saved AI analysis from history
             if (resultsData.saved_ai_analysis && resultsData.saved_ai_analysis.has_ai_analysis) {
-                console.log('[AI] Using saved AI analysis from history');
-                displayAiResults(resultsData.saved_ai_analysis);
-                return;
+                console.log('[AI] Found saved AI analysis from history');
+                // Verify it's a real analysis, not a fallback (fallback has "AI analysis unavailable" text)
+                const isFallback = resultsData.saved_ai_analysis.summary_table && 
+                    resultsData.saved_ai_analysis.summary_table.some(row => 
+                        Object.values(row).some(v => typeof v === 'string' && v.includes('unavailable'))
+                    );
+                if (!isFallback) {
+                    console.log('[AI] Using saved AI analysis (genuine result)');
+                    displayAiResults(resultsData.saved_ai_analysis);
+                    return;
+                }
+                console.log('[AI] Saved analysis was a fallback — re-running fresh');
             }
             
             try {
