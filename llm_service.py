@@ -508,17 +508,17 @@ def generate_full_ai_analysis(disease_name: str, results: dict) -> dict:
         print(f"[LLM] {rx_key}: {len(disgenet_data)} DisGeNET entries")
     
     if len(prescription_enrichments) > 1:
-        # Multiple prescriptions - do comparative analysis
-        print("[LLM] Running comparative analysis for multiple prescriptions")
+        # Multiple prescriptions submitted - filter to those with enrichment data
+        print("[LLM] Processing multiple prescriptions")
         prescription_data = {}
         for rx_key, rx_data in prescription_enrichments.items():
             rx_disgenet = rx_data.get('DisGeNET', [])
             if rx_disgenet:
                 prescription_data[rx_key] = rx_disgenet
         
-        if prescription_data:
-            print(f"[LLM] Valid prescription data for {len(prescription_data)} groups")
-            # Generate comparative analysis
+        if len(prescription_data) > 1:
+            # Multiple prescriptions have enrichment data → comparative analysis
+            print(f"[LLM] Running comparative analysis for {len(prescription_data)} groups")
             analysis = generate_comparative_analysis(disease_name, prescription_data)
             if analysis:
                 ai_results['summary_table'] = analysis.get('summary_table', [])
@@ -533,6 +533,27 @@ def generate_full_ai_analysis(disease_name: str, results: dict) -> dict:
             clinical = generate_clinical_questions(disease_name, prescription_data)
             if clinical:
                 ai_results['clinical_questions'] = clinical
+        
+        elif len(prescription_data) == 1:
+            # Only 1 prescription has enrichment data → single prescription analysis
+            rx_key = list(prescription_data.keys())[0]
+            rx_data = prescription_data[rx_key]
+            print(f"[LLM] Only {rx_key} has enrichment data ({len(rx_data)} entries) — running single prescription analysis")
+            
+            analysis = generate_single_prescription_analysis(disease_name, rx_data)
+            if analysis:
+                ai_results['summary_table'] = analysis.get('summary_table', [])
+                ai_results['detailed_analysis'] = analysis.get('detailed_analysis', '')
+                ai_results['has_ai_analysis'] = True
+                print("[LLM] Single prescription analysis completed successfully")
+            else:
+                ai_results['error'] = "Failed to generate analysis"
+                print("[LLM] Single prescription analysis returned None")
+            
+            clinical = generate_single_clinical_questions(disease_name, rx_data)
+            if clinical:
+                ai_results['clinical_questions'] = clinical
+        
         else:
             ai_results['error'] = "No valid enrichment data in any prescription"
             print("[LLM] Error: No valid enrichment data in prescriptions")
