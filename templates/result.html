@@ -1438,12 +1438,19 @@
                     })
                 });
                 
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || 'AI analysis failed');
+                // Safely parse response — handle HTML error pages gracefully
+                const responseText = await response.text();
+                let aiResults;
+                try {
+                    aiResults = JSON.parse(responseText);
+                } catch (parseErr) {
+                    console.error('[AI] Response is not valid JSON:', responseText.substring(0, 200));
+                    throw new Error('Server returned an invalid response. Please try again.');
                 }
                 
-                const aiResults = await response.json();
+                if (!response.ok) {
+                    throw new Error(aiResults.error || 'AI analysis failed');
+                }
                 
                 // Hide loading states
                 document.getElementById('ai-loading').style.display = 'none';

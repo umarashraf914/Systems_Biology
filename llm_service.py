@@ -9,9 +9,10 @@ import traceback
 from config import Config
 
 
-def get_gemini_response(prompt: str) -> str:
+def get_gemini_response(prompt: str, json_mode: bool = True) -> str:
     """
     Send a prompt to Google Gemini API and get a response.
+    Uses JSON response mode by default for reliable structured output.
     """
     api_key = Config.GEMINI_API_KEY
     
@@ -25,20 +26,26 @@ def get_gemini_response(prompt: str) -> str:
         "Content-Type": "application/json"
     }
     
+    generation_config = {
+        "temperature": 0.4,
+        "maxOutputTokens": 4096
+    }
+    
+    # Use JSON response mode when requested — forces Gemini to output valid JSON
+    if json_mode:
+        generation_config["responseMimeType"] = "application/json"
+    
     data = {
         "contents": [{
             "parts": [{
                 "text": prompt
             }]
         }],
-        "generationConfig": {
-            "temperature": 0.7,
-            "maxOutputTokens": 4096
-        }
+        "generationConfig": generation_config
     }
     
     try:
-        print(f"[LLM] Sending request to Gemini API (prompt length: {len(prompt)} chars)...")
+        print(f"[LLM] Sending request to Gemini API (prompt length: {len(prompt)} chars, json_mode={json_mode})...")
         response = requests.post(url, headers=headers, json=data, timeout=90)
         
         if not response.ok:
@@ -202,21 +209,44 @@ You must return your response in a strict JSON format with exactly two keys: "su
 
 Do not include any text outside the JSON object."""
 
-    response_text = get_gemini_response(prompt)
+    # Retry up to 3 times for reliable JSON output
+    for attempt in range(1, 4):
+        print(f"[LLM] Comparative analysis attempt {attempt}/3")
+        response_text = get_gemini_response(prompt, json_mode=True)
+        
+        if not response_text:
+            continue
+        
+        parsed = extract_json_from_response(response_text)
+        
+        if parsed and 'summary_table' in parsed and 'detailed_analysis' in parsed:
+            return parsed
+        
+        print(f"[LLM] Attempt {attempt} failed to produce valid JSON, retrying...")
     
-    if not response_text:
-        return None
+    # All retries exhausted — return a safe fallback
+    print("[LLM] All comparative analysis attempts failed, using fallback")
+    return _build_comparative_fallback(disease_name, prescription_data)
+
+
+def _build_comparative_fallback(disease_name: str, prescription_data: dict) -> dict:
+    """Build a guaranteed-valid fallback response when LLM fails."""
+    num_groups = len(prescription_data)
+    group_labels = list(prescription_data.keys())
     
-    parsed = extract_json_from_response(response_text)
+    table_row = {"Feature": "Status"}
+    for i, label in enumerate(group_labels, 1):
+        table_row[f"Group {i}"] = "AI analysis unavailable"
     
-    if parsed and 'summary_table' in parsed and 'detailed_analysis' in parsed:
-        return parsed
+    detail_lines = [f"## Analysis for {disease_name}\n"]
+    for i, (label, data) in enumerate(prescription_data.items(), 1):
+        terms = [r.get('term', '?') for r in (data or [])[:5]]
+        detail_lines.append(f"**Group {i} ({label}):** Top associations include: {', '.join(terms)}.\n")
+    detail_lines.append("*Automated AI analysis could not be completed. The enrichment data above is provided for manual review.*")
     
-    # Fallback if parsing failed
     return {
-        'summary_table': [],
-        'detailed_analysis': response_text if response_text else "Analysis could not be generated.",
-        'parse_error': True
+        'summary_table': [table_row],
+        'detailed_analysis': "\n".join(detail_lines)
     }
 
 
@@ -264,18 +294,43 @@ Generate exactly {num_groups} group objects, one for each prescription group.
 
 Do not include any text outside the JSON array."""
 
-    response_text = get_gemini_response(prompt)
+    # Retry up to 3 times for reliable JSON output
+    for attempt in range(1, 4):
+        print(f"[LLM] Clinical questions attempt {attempt}/3")
+        response_text = get_gemini_response(prompt, json_mode=True)
+        
+        if not response_text:
+            continue
+        
+        parsed = extract_json_array_from_response(response_text)
+        
+        if parsed and isinstance(parsed, list) and len(parsed) > 0:
+            return parsed
+        
+        print(f"[LLM] Attempt {attempt} failed to produce valid JSON array, retrying...")
     
-    if not response_text:
-        return None
-    
-    # Try to parse JSON array from response
-    parsed = extract_json_array_from_response(response_text)
-    
-    if parsed and isinstance(parsed, list):
-        return parsed
-    
-    return None
+    # All retries exhausted — return safe fallback
+    print("[LLM] All clinical question attempts failed, using fallback")
+    return _build_clinical_fallback(disease_name, prescription_data)
+
+
+def _build_clinical_fallback(disease_name: str, prescription_data: dict) -> list:
+    """Build a guaranteed-valid fallback clinical questions response."""
+    result = []
+    for i, (label, data) in enumerate(prescription_data.items(), 1):
+        terms = [r.get('term', '?') for r in (data or [])[:3]]
+        result.append({
+            "group_label": f"Group {i}: {label}",
+            "suspected_driver": f"Associated with: {', '.join(terms)}",
+            "clinical_questions": [
+                f"Do you have a history of conditions related to {disease_name}?",
+                "Are you currently taking any medications?",
+                "Do you have a family history of this condition?",
+                "Have you noticed any recent changes in symptoms?"
+            ],
+            "rationale_hidden": f"**Note:** Automated AI analysis could not be completed. These are general screening questions for {disease_name}. Please review the enrichment data for specific pathway-driven questions."
+        })
+    return result
 
 
 def extract_json_array_from_response(text: str) -> list:
@@ -331,20 +386,27 @@ You must return your response in a strict JSON format with exactly two keys: "su
 
 Do not include any text outside the JSON object."""
 
-    response_text = get_gemini_response(prompt)
+    # Retry up to 3 times
+    for attempt in range(1, 4):
+        print(f"[LLM] Single prescription analysis attempt {attempt}/3")
+        response_text = get_gemini_response(prompt, json_mode=True)
+        
+        if not response_text:
+            continue
+        
+        parsed = extract_json_from_response(response_text)
+        
+        if parsed and 'summary_table' in parsed and 'detailed_analysis' in parsed:
+            return parsed
+        
+        print(f"[LLM] Attempt {attempt} failed, retrying...")
     
-    if not response_text:
-        return None
-    
-    parsed = extract_json_from_response(response_text)
-    
-    if parsed and 'summary_table' in parsed and 'detailed_analysis' in parsed:
-        return parsed
-    
+    # Fallback
+    print("[LLM] All single analysis attempts failed, using fallback")
+    terms = [r.get('term', '?') for r in (enrichment_data or [])[:5]]
     return {
-        'summary_table': [],
-        'detailed_analysis': response_text if response_text else "Analysis could not be generated.",
-        'parse_error': True
+        'summary_table': [{"Feature": "Status", "Finding": "AI analysis unavailable"}],
+        'detailed_analysis': f"## Analysis for {disease_name}\n\nTop associations: {', '.join(terms)}.\n\n*Automated AI analysis could not be completed. Please review the enrichment data above.*"
     }
 
 
@@ -382,17 +444,35 @@ Example Structure:
 
 Do not include any text outside the JSON array."""
 
-    response_text = get_gemini_response(prompt)
+    # Retry up to 3 times
+    for attempt in range(1, 4):
+        print(f"[LLM] Single clinical questions attempt {attempt}/3")
+        response_text = get_gemini_response(prompt, json_mode=True)
+        
+        if not response_text:
+            continue
+        
+        parsed = extract_json_array_from_response(response_text)
+        
+        if parsed and isinstance(parsed, list) and len(parsed) > 0:
+            return parsed
+        
+        print(f"[LLM] Attempt {attempt} failed, retrying...")
     
-    if not response_text:
-        return None
-    
-    parsed = extract_json_array_from_response(response_text)
-    
-    if parsed and isinstance(parsed, list):
-        return parsed
-    
-    return None
+    # Fallback
+    print("[LLM] All single clinical question attempts failed, using fallback")
+    terms = [r.get('term', '?') for r in (enrichment_data or [])[:3]]
+    return [{
+        "group_label": "Prescription Analysis",
+        "suspected_driver": f"Associated with: {', '.join(terms)}",
+        "clinical_questions": [
+            f"Do you have a history of conditions related to {disease_name}?",
+            "Are you currently taking any medications?",
+            "Do you have a family history of this condition?",
+            "Have you noticed any recent changes in symptoms?"
+        ],
+        "rationale_hidden": f"**Note:** Automated AI analysis could not be completed. These are general screening questions for {disease_name}."
+    }]
 
 
 def generate_full_ai_analysis(disease_name: str, results: dict) -> dict:
