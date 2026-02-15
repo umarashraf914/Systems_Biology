@@ -1015,6 +1015,152 @@
         .alert-warning i {
             color: #f59e0b;
         }
+        
+        /* ===== Print Styles - Keep all colors in PDF ===== */
+        @media print {
+            /* Force browsers to print background colors and images */
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                color-adjust: exact !important;
+            }
+            
+            /* Remove navigation and action buttons */
+            .top-nav,
+            .page-actions,
+            .btn-retry,
+            .btn-rationale,
+            #btn-toggle-details,
+            .back-link {
+                display: none !important;
+            }
+            
+            /* Full width on print */
+            body {
+                background: white !important;
+            }
+            
+            .main-content {
+                max-width: 100% !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            
+            /* Preserve hero card gradient */
+            .disease-hero-card {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+                color: white !important;
+                box-shadow: none !important;
+                break-inside: avoid;
+            }
+            
+            .disease-hero-card * {
+                color: white !important;
+            }
+            
+            /* Preserve stat badges */
+            .hero-stat {
+                background: rgba(255,255,255,0.2) !important;
+            }
+            
+            /* Common genes cards */
+            .gene-match-card {
+                break-inside: avoid;
+            }
+            
+            /* Preserve AI card header */
+            .ai-card .card-header,
+            .clinical-card .card-header {
+                background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%) !important;
+                color: white !important;
+            }
+            
+            .ai-card .card-header *,
+            .clinical-card .card-header * {
+                color: white !important;
+            }
+            
+            /* Clinical card styling */
+            .clinical-card .card-header {
+                background: linear-gradient(135deg, #059669 0%, #10b981 100%) !important;
+            }
+            
+            /* Preserve rx-badge colors */
+            .rx-badge {
+                background: #6366f1 !important;
+                color: white !important;
+            }
+            
+            /* Preserve table header colors */
+            .ai-summary-table th,
+            .enrichment-table th {
+                background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%) !important;
+                color: white !important;
+            }
+            
+            /* Preserve herb tags */
+            .herb-tag {
+                background: #e0e7ff !important;
+                color: #4338ca !important;
+            }
+            
+            /* Cards - avoid page breaks inside */
+            .card {
+                break-inside: avoid;
+                box-shadow: none !important;
+                border: 1px solid #e2e8f0 !important;
+            }
+            
+            /* Clinical group cards */
+            .clinical-group-card {
+                break-inside: avoid;
+                border: 1px solid #e2e8f0 !important;
+            }
+            
+            .clinical-group-header {
+                background: #f0fdf4 !important;
+            }
+            
+            .clinical-group-label {
+                background: #059669 !important;
+                color: white !important;
+            }
+            
+            /* Hide rationale panels and loading states */
+            .rationale-panel,
+            #ai-loading,
+            #clinical-loading,
+            #ai-unavailable,
+            #clinical-unavailable,
+            #ai-error {
+                display: none !important;
+            }
+            
+            /* Show detailed analysis if visible */
+            #detailed-analysis.show {
+                display: block !important;
+            }
+            
+            /* Prescription stats */
+            .prescription-stat-value {
+                color: #6366f1 !important;
+            }
+            
+            /* No unique genes notice */
+            .no-unique-genes-notice {
+                background: #f8fafc !important;
+                border: 1px solid #e2e8f0 !important;
+            }
+            
+            /* Score and p-value badges */
+            .pvalue {
+                color: #6366f1 !important;
+            }
+            
+            .score {
+                color: #059669 !important;
+            }
+        }
     </style>
 </head>
 <body>
