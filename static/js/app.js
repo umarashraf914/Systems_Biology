@@ -656,6 +656,17 @@ function handleFormSubmit(e) {
     elements.form.submit();
 }
 
+// Reset submit button when page is restored from back/forward cache
+window.addEventListener('pageshow', function(event) {
+    if (elements.form) {
+        const submitBtn = elements.form.querySelector('button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.innerHTML = '<i class="fas fa-search"></i> Analyze';
+            submitBtn.disabled = false;
+        }
+    }
+});
+
 // ==========================================
 // Event Listeners Setup
 // ==========================================
